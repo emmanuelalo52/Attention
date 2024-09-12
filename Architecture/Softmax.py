@@ -1,5 +1,7 @@
 import torch
-class Softmax:
+import torch.nn as nn
+
+class Softmax(nn.Module):
     def __call__(self,x):
         x = torch.max(x,keepdim=True)
         self.out = torch.exp(x)
