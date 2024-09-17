@@ -11,8 +11,8 @@ class MultiheadAttn(nn.Module):
         super().__init__()
         self.emb_dim = emb_dim
         self.num_heads = num_heads
-        self.head_dim = emb_dim // num_heads
-        if self.head_dim * num_heads == emb_dim:
+        self.head_size = emb_dim // num_heads
+        if self.head_size * num_heads == emb_dim:
             self.q_l = Linear(emb_dim,emb_dim)
             self.k_l = Linear(emb_dim,emb_dim)
             self.v_l = Linear(emb_dim,emb_dim)
@@ -24,12 +24,12 @@ class MultiheadAttn(nn.Module):
         v = self.v_l(v)
 
         #we use the view to reshape our q,k,v
-        q = q.view(0,-1,self.num_heads,self.head_dim)
-        k = k.view(0,-1,self.num_heads,self.head_dim)
-        v = v.view(0,-1,self.num_heads,self.head_dim)
+        q = q.view(0,-1,self.num_heads,self.head_size)
+        k = k.view(0,-1,self.num_heads,self.head_size)
+        v = v.view(0,-1,self.num_heads,self.head_size)
 
         #do scalar dot product
-        attention = torch.matmul(q,k.transpose(-2,-1)/torch.sqrt(self.head_dim))
+        attention = torch.matmul(q,k.transpose(-2,-1)/torch.sqrt(self.head_size))
         if mask is not None:
             attention = attention.masked_fill(mask==0,float('-inf'))
         attention_weight = Softmax(attention,dim=-1)
