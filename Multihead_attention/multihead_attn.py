@@ -7,57 +7,49 @@ from ..Architecture.Softmax import Softmax
 from ..Architecture.ReLU import ReLU
 import torch.nn as nn
 from torch.nn import functional as F
-class MultiheadAttn(nn.Module):
-    def __init__(self, emb_dim, num_heads, block_size, dropout=0.1):
+class SelfAttention(nn.Module):
+    def __init__(self,n_embed,head_size,block_size, dropout=0.1):
         super().__init__()
-        assert emb_dim % num_heads == 0, "emb_dim must be divisible by num_heads"
-        
-        self.emb_dim = emb_dim
-        self.num_heads = num_heads
-        self.head_size = emb_dim // num_heads
-        
-        self.q_l = nn.Linear(emb_dim, emb_dim)
-        self.k_l = nn.Linear(emb_dim, emb_dim)
-        self.v_l = nn.Linear(emb_dim, emb_dim)
-        self.out_linear = nn.Linear(emb_dim, emb_dim)
-        
+        self.head_size = head_size
+        self.query = nn.Linear(n_embed,head_size,bias=False)
+        self.key = nn.Linear(n_embed,head_size,bias=False)
+        self.value = nn.Linear(n_embed,head_size,bias=False)
+        self.register_buffer('tril',torch.tril(torch.ones(block_size,block_size)))
         self.dropout = nn.Dropout(dropout)
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-
-    def forward(self, x):
-        B, T, C = x.shape
-        
-        # Linear projections and reshape
+    def forward(self,x):
+        B,T,C = x.shape
         q = self.q_l(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
         k = self.k_l(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
         v = self.v_l(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
-        
-        # Attention
-        weight = q @ k.transpose(-2, -1) * (self.head_size ** -0.5)
-        weight = weight.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
-        weight = F.softmax(weight, dim=-1)
-        weight = self.dropout(weight)
-        
-        # Apply attention to values
-        out = weight @ v
-        
-        # Reshape and apply final linear layer
-        out = out.transpose(1, 2).contiguous().view(B, T, C)
-        out = self.out_linear(out)
-        
-        # Apply dropout (if needed)
-        out = self.dropout(out)
-        
+
+        wei= q @ k.transpose(-2,-1)*C**-0.5# switch the last 2 dimensions(T,C). We then dot multiply (B,16,T) @ (B,T,16) to give us (B,T,T)
+        wei = wei.masked_fill(self.tril[:T,:T]==0,float('-inf'))
+        wei = F.softmax(wei,dim=-1)
+        wei = self.dropout(wei)
+        out = wei @ v
         return out
     
 
+class MultiHeadAttention(nn.Module):
+    def __init__(self,num_heads,head_size, n_embed,dropout=0.1):
+        super().__init__()
+        self.n_heads = nn.ModuleList(SelfAttention(head_size) for _ in range(num_heads))
+        self.proj = nn.Linear(n_embed,n_embed)
+        self.dropout = nn.Dropout(dropout)
+    
+    def forward(self,x):
+        out = torch.cat([h(x) for h in self.n_heads], dim=-1)
+        out = self.dropout(self.proj(out))
+        return out
 #FFN(x) = max(0, xW1 + b1)W2 + b2
 class PositionWiseForward(nn.Module):
-    def __init__(self,input,output_size,dropout=0.1):
+    def __init__(self,n_embed):
         super().__init__()
-        self.resid_net = nn.Sequential(Linear(input, output_size),
-                                       nn.ReLU(),
-                                       nn.Linear(input,output_size),
-                                       Dropout(dropout),)
+        self.net = nn.Sequential(
+            nn.Linear(n_embed,4 * n_embed),
+            nn.ReLU(),
+            nn.Linear(4 * n_embed,n_embed),
+            nn.Dropout(),
+        )
     def forward(self,x):
-        return self.resid_net(x)
+        return self.net(x)
