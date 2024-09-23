@@ -7,6 +7,9 @@ from ..Architecture.Softmax import Softmax
 from ..Architecture.ReLU import ReLU
 import torch.nn as nn
 from torch.nn import functional as F
+
+
+#Simple self attention mechanism
 class SelfAttention(nn.Module):
     def __init__(self,n_embed,head_size,block_size, dropout=0.1):
         super().__init__()
@@ -29,7 +32,7 @@ class SelfAttention(nn.Module):
         out = wei @ v
         return out
     
-
+#Multi-head attention
 class MultiHeadAttention(nn.Module):
     def __init__(self,num_heads,head_size, n_embed,dropout=0.1):
         super().__init__()

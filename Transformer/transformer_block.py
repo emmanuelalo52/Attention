@@ -1,7 +1,9 @@
 from ..Multihead_attention.multihead_attn import *
 from ..Architecture.LayerNorm import LayerNorm
 import torch.nn as nn
-
+#Transformer block
+#Here computation and communication between tokens happen
+# Add normalization before the feed-forward
 class TransformerBlock(nn.Module):
     def __init__(self,n_embed,n_heads):
         super().__init__()
