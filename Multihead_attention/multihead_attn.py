@@ -14,11 +14,11 @@ class SelfAttention(nn.Module):
     def __init__(self,n_embed,head_size,block_size, dropout=0.1):
         super().__init__()
         self.head_size = head_size
-        self.query = nn.Linear(n_embed,head_size,bias=False)
-        self.key = nn.Linear(n_embed,head_size,bias=False)
-        self.value = nn.Linear(n_embed,head_size,bias=False)
+        self.query = Linear(n_embed,head_size,bias=False)
+        self.key = Linear(n_embed,head_size,bias=False)
+        self.value = Linear(n_embed,head_size,bias=False)
         self.register_buffer('tril',torch.tril(torch.ones(block_size,block_size)))
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = Dropout(dropout)
     def forward(self,x):
         B,T,C = x.shape
         q = self.q_l(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
@@ -37,8 +37,8 @@ class MultiHeadAttention(nn.Module):
     def __init__(self,num_heads,head_size, n_embed,dropout=0.1):
         super().__init__()
         self.n_heads = nn.ModuleList(SelfAttention(head_size) for _ in range(num_heads))
-        self.proj = nn.Linear(n_embed,n_embed)
-        self.dropout = nn.Dropout(dropout)
+        self.proj = Linear(n_embed,n_embed)
+        self.dropout = Dropout(dropout)
     
     def forward(self,x):
         out = torch.cat([h(x) for h in self.n_heads], dim=-1)
@@ -49,10 +49,10 @@ class PositionWiseForward(nn.Module):
     def __init__(self,n_embed):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embed,4 * n_embed),
-            nn.ReLU(),
-            nn.Linear(4 * n_embed,n_embed),
-            nn.Dropout(),
+            Linear(n_embed,4 * n_embed),
+            ReLU(),
+            Linear(4 * n_embed,n_embed),
+            Dropout(),
         )
     def forward(self,x):
         return self.net(x)
