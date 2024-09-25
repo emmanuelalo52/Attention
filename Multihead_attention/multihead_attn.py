@@ -21,9 +21,9 @@ class SelfAttention(nn.Module):
         self.dropout = Dropout(dropout)
     def forward(self,x):
         B,T,C = x.shape
-        q = self.q_l(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
-        k = self.k_l(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
-        v = self.v_l(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
+        q = self.query(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
+        k = self.key(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
+        v = self.value(x).view(B, T, self.num_heads, self.head_size).transpose(1, 2)
 
         wei= q @ k.transpose(-2,-1)*C**-0.5# switch the last 2 dimensions(T,C). We then dot multiply (B,16,T) @ (B,T,16) to give us (B,T,T)
         wei = wei.masked_fill(self.tril[:T,:T]==0,float('-inf'))
