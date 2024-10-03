@@ -1,6 +1,4 @@
-import torch
-import torch.nn as nn
-
+from dependencies import *
 class Linear(nn.Module):
     def __init__(self,fan_in,fan_out,bias=True):
         super().__init__()
