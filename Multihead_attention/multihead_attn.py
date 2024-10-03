@@ -8,7 +8,7 @@ from ..Dependencies.ReLU import ReLU
 import torch.nn as nn
 from torch.nn import functional as F
 from ..Dependencies import Scaleddotproduct
-
+from ..Dependencies import RoPE
 #Simple self attention mechanism
 
 
@@ -21,6 +21,7 @@ class MultiHeadAttention(nn.Module):
         self.n_head = n_head
         self.emb_dim = emb_dim
         self.block_size = block_size
+        self.rope = RoPE()
         self.register_buffer("bias", torch.tril(torch.ones(block_size,block_size)).view(1,1,block_size,block_size))
     def forward(self, x):
         B,T,C = x.size()
@@ -29,6 +30,8 @@ class MultiHeadAttention(nn.Module):
         k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        q = self.rope(q)
+        k = self.rope(k)
         scores = Scaleddotproduct(q,k,v)
         weights = scores.transpose(1, 2).contiguous().view(B, T, C) # re-assemble all head outputs side by side
         weights = self.proj(weights)
