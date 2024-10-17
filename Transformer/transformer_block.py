@@ -1,5 +1,5 @@
 from ..Multihead_attention.multihead_attn import *
-from ..Architecture.LayerNorm import LayerNorm
+from ..Dependencies.LayerNorm import LayerNorm
 import torch.nn as nn
 #Transformer block
 #Here computation and communication between tokens happen
@@ -10,8 +10,8 @@ class TransformerBlock(nn.Module):
         head_size = n_embed//n_heads
         self.sa = MultiHeadAttention(n_heads,head_size)
         self.ffd = PositionWiseForward(n_embed)
-        self.ln1 = nn.LayerNorm(n_embed)
-        self.ln2 = nn.LayerNorm(n_embed)
+        self.ln1 = LayerNorm(n_embed)
+        self.ln2 = LayerNorm(n_embed)
     def forward(self,x):
         x = x + self.sa(self.ln1(x))
         x = x + self.ffd(self.ln2(x))
